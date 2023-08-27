@@ -1,0 +1,25 @@
+name: commitlint
+
+on: [push, pull_request]
+
+jobs:
+  commitlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with: { fetch-depth: 0 }
+      - name: Install required dependencies
+        run: |
+          cat <<EOF | sudo -E sh
+          curl -sL https://deb.nodesource.com/setup_18.x | bash
+          DEBIAN_FRONTEND=noninteractive apt install -y nodejs
+          EOF
+          npm i @commitlint/cli @commitlint/config-conventional
+
+      - name: Validate current commit (last commit) with commitlint
+        if: github.event_name == 'push'
+        run: git log -1 --pretty=format:"%s" | npx @commitlint/cli -x @commitlint/config-conventional --verbose
+
+      - name: Validate PR commits with commitlint
+        if: github.event_name == 'pull_request'
+        run: npx @commitlint/cli -x @commitlint/config-conventional --from ${{ github.event.pull_request.head.sha }}~${{ github.event.pull_request.commits }} --to ${{ github.event.pull_request.head.sha }} --verbose
